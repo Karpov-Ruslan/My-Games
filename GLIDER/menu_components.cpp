@@ -9,9 +9,9 @@
 
 namespace krv {
 
-    bool consent_window(sf::RenderWindow &window) {
+    bool consent_window(sf::RenderWindow &window, const std::string& txt) {
         static MyFont arial("../pic/text/arial.ttf");
-        sf::Text text("Are you sure?", arial, 75);
+        sf::Text text(txt, arial, 75);
         text.setOrigin(text.getLocalBounds().width/2.0f, 0.0f);
         text.setPosition(400.0f, 200.0f);
         sf::Texture buttons_texture;
@@ -312,7 +312,7 @@ namespace krv {
     }
 
     void File_List::delete_level(sf::RenderWindow &window, Scrollbar &scrollbar, LevelSelectionCursor &cursor) {
-        if (consent_window(window)) {
+        if (consent_window(window, "Are you sure?")) {
             ListIt mouse_it = cursor.get_mouse_iterator();
             std::string level_name = static_cast<std::string>(mouse_it->text.getString());
             for (ListIt it = std::next(mouse_it); it != end(); it++) {

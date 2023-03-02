@@ -7,7 +7,7 @@
 
 namespace krv{
 
-bool consent_window(sf::RenderWindow &window);
+bool consent_window(sf::RenderWindow &window, const std::string& txt);
 
 
 

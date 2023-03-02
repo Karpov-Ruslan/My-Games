@@ -35,6 +35,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
 /////////////////////////>   Moving Elements   <//////////////////////////////////
     Build_Cursor build_cursor(1.0f);
 /////////////////////////>   Static Elements   <//////////////////////////////////
+    Build_Type build_type;
     // sf::RectangleShape game_object_type(sf::Vector2f());
     // game_object_type.set
 
@@ -70,13 +71,16 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Button::Left) {
                     if (build_cursor.get_pressed()) {
-                        game_objects.add(build_cursor.get_type(), build_cursor.get_floatrect());
+                        game_objects.add(window, build_cursor.get_type(), build_cursor.get_floatrect(), build_cursor.get_rotation());
                     }
                     //TODO:
                     // if (build_cursor.get_type() == GAME_OBJECT_TYPE::NOTHING) {
 
                     // }
                     build_cursor.change_press();
+                }
+                if (event.mouseButton.button == sf::Mouse::Button::Middle) {
+                    build_cursor.rotate();
                 }
             }
             if (event.type == sf::Event::MouseWheelScrolled) {
@@ -101,9 +105,10 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                     if (event.mouseWheelScroll.delta > 0.0f) {
                         build_cursor.decrease_type();
                     }
-                    if (event.mouseWheelScroll.delta < 0.0f) {
+                    else if (event.mouseWheelScroll.delta < 0.0f) {
                         build_cursor.increase_type();
                     }
+                    build_type.update(build_cursor.get_type());
                 }
             }
             build_cursor.update(window, view);
@@ -112,7 +117,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
 
 /////////////////////////>   Moving Elements   <//////////////////////////////////
         window.setView(view);
-        window.clear();
+        window.clear(sf::Color(50, 75, 75, 255));
 
         window.draw(game_objects);
 
@@ -120,7 +125,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
 /////////////////////////>   Static Elements   <//////////////////////////////////
         window.setView(window.getDefaultView());
 
-        
+        window.draw(build_type);
 
         window.display();
     }
