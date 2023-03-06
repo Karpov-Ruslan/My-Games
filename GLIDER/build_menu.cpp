@@ -3,6 +3,7 @@
 #include "build_menu.hpp"
 #include "menu_components.hpp"
 #include "build_components.hpp"
+#include "player.hpp"
 
 namespace krv {
 
@@ -28,11 +29,11 @@ class MyMouse : public sf::Mouse {
 
 
 void build_menu(sf::RenderWindow &window, const std::string &level_file) {
-    Game_Objects game_objects;
     sf::View view(sf::Vector2f(0.0f, 0.0f), sf::Vector2f(24.0f, 18.0f));
     window.setView(view);
     MyMouse mouse;
 /////////////////////////>   Moving Elements   <//////////////////////////////////
+    Game_Objects game_objects;
     Build_Cursor build_cursor(1.0f);
 /////////////////////////>   Static Elements   <//////////////////////////////////
     Build_Type build_type;
@@ -73,10 +74,9 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                     if (build_cursor.get_pressed()) {
                         game_objects.add(window, build_cursor.get_type(), build_cursor.get_floatrect(), build_cursor.get_rotation());
                     }
-                    //TODO:
-                    // if (build_cursor.get_type() == GAME_OBJECT_TYPE::NOTHING) {
-
-                    // }
+                    if (build_cursor.get_type() == GAME_OBJECT_TYPE::NOTHING) {
+                        game_objects.remove(build_cursor.get_floatrect());
+                    }
                     build_cursor.change_press();
                 }
                 if (event.mouseButton.button == sf::Mouse::Button::Middle) {
@@ -111,13 +111,14 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                     build_type.update(build_cursor.get_type());
                 }
             }
-            build_cursor.update(window, view);
+            build_cursor.update(game_objects, window, view);
         }
 
 
+/////////////////////////>     Background     <///////////////////////////////////
 /////////////////////////>   Moving Elements   <//////////////////////////////////
         window.setView(view);
-        window.clear(sf::Color(50, 75, 75, 255));
+        window.clear();
 
         window.draw(game_objects);
 

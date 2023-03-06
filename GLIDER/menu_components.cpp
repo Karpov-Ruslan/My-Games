@@ -15,7 +15,7 @@ namespace krv {
         text.setOrigin(text.getLocalBounds().width/2.0f, 0.0f);
         text.setPosition(400.0f, 200.0f);
         sf::Texture buttons_texture;
-        buttons_texture.loadFromFile("../pic/Glider/yesno.png");
+        buttons_texture.loadFromFile("../pic/yesno.png");
         Quadratic_Button button_yes(320.0f, 370.0f, 100.0f, buttons_texture, 2.0f);
         button_yes.setTextureRect(sf::IntRect(0, 0, 50, 50));
         Quadratic_Button button_no(480.0f, 370.0f, 100.0f, buttons_texture);

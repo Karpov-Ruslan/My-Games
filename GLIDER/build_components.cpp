@@ -10,12 +10,12 @@ const float scale = 50.0f;
 
 Build_Type::Build_Type() {
     int number = static_cast<int>(GAME_OBJECT_TYPE::NOTHING) + 1;
-    types_texture.loadFromFile("../pic/Glider/game_objects.png");
+    types_texture.loadFromFile("../pic/game_objects.png");
     types.setSize(sf::Vector2f(number*scale, scale));
     types.setTexture(&types_texture);
     select.setSize(sf::Vector2f(scale, scale));
     select.setPosition(0.0f, 0.0f);
-    select_texture.loadFromFile("../pic/Glider/build_cursor.png");
+    select_texture.loadFromFile("../pic/build_cursor.png");
     select.setTexture(&select_texture);
 }
 
@@ -33,7 +33,7 @@ void Build_Type::draw(sf::RenderTarget& target, sf::RenderStates states) const {
 Build_Cursor::Build_Cursor(float length, sf::Color color) {
     cursor.setOrigin(sf::Vector2f(length/2.0f, length/2.0f));
     cursor.setSize(sf::Vector2f(length, length));
-    texture.loadFromFile("../pic/Glider/direct_build_cursor.png");
+    texture.loadFromFile("../pic/direct_build_cursor.png");
     cursor.setTexture(&texture);
     rect.setFillColor(color);
     rect.setOutlineColor(sf::Color::Black);
@@ -83,6 +83,7 @@ bool Build_Cursor::get_pressed() const {
 }
 
 sf::FloatRect Build_Cursor::get_floatrect() const {
+    if (type == GAME_OBJECT_TYPE::NOTHING) {return cursor.getGlobalBounds();}
     return rect.getGlobalBounds();
 }
 
@@ -98,7 +99,7 @@ void Build_Cursor::change_press() {
     }
 }
 
-void Build_Cursor::update(sf::RenderWindow &window, const sf::View &view) {
+void Build_Cursor::update(const Game_Objects &game_objects, sf::RenderWindow &window, const sf::View &view) {
     sf::Vector2f world_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window), view);
     sf::Vector2f round_world_pos = sf::Vector2f(std::round(world_pos.x), std::round(world_pos.y));
     cursor.setPosition(round_world_pos);
@@ -120,10 +121,17 @@ void Build_Cursor::update(sf::RenderWindow &window, const sf::View &view) {
             rect.setFillColor(sf::Color(255, 0, 0, 100));
         }
     }
+    if (type == GAME_OBJECT_TYPE::NOTHING) {
+        sf::FloatRect floatrect = game_objects.remove_shading(cursor.getGlobalBounds());
+        rect.setSize(sf::Vector2f(floatrect.width, floatrect.height));
+        rect.setOrigin(sf::Vector2f(0.0f, 0.0f));
+        rect.setPosition(sf::Vector2f(floatrect.left, floatrect.top));
+        rect.setFillColor(sf::Color(255, 255, 255, 100));
+    }
 }
 
 void Build_Cursor::draw(sf::RenderTarget& target, sf::RenderStates states) const {
-    if (pressed) {
+    if (pressed || type == GAME_OBJECT_TYPE::NOTHING) {
         target.draw(rect, states);
     }
     target.draw(cursor, states);

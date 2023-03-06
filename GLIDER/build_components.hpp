@@ -50,7 +50,7 @@ class Build_Cursor : public sf::Drawable {
 
     void change_press();
 
-    void update(sf::RenderWindow &window, const sf::View &view);
+    void update(const Game_Objects &game_objects, sf::RenderWindow &window, const sf::View &view);
 
   private:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const;
