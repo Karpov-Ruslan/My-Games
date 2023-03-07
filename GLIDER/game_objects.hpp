@@ -5,6 +5,7 @@
 #include <list>
 #include <unordered_map>
 #include "player.hpp"
+#include "level_selection_menu.hpp"
 
 namespace krv {
 
@@ -44,6 +45,7 @@ class Block : public sf::RectangleShape {
 
 
 class Spike : public sf::RectangleShape {
+    float angle;
     sf::Texture texture;
 
   public:
@@ -58,6 +60,8 @@ class Spike : public sf::RectangleShape {
     Spike(Spike&& value);
 
     Spike& operator=(Spike&& value);
+
+    float get_angle() const;
 };
 
 
@@ -101,6 +105,7 @@ class Shuriken : public sf::RectangleShape {
 
 
 class Stair : public sf::RectangleShape {
+    float angle;
     sf::Texture texture;
   public:
     Stair(const sf::FloatRect &floatrect, const float angle);
@@ -114,11 +119,14 @@ class Stair : public sf::RectangleShape {
     Stair(Stair&& value);
 
     Stair& operator=(Stair&& value);
+
+    float get_angle() const;
 };
 
 
 
 class Laser : public sf::RectangleShape {
+    float angle;
     sf::Texture texture;
     static sf::Shader shader;
     bool is_work = true;
@@ -128,15 +136,29 @@ class Laser : public sf::RectangleShape {
     //      |           |               |
     //      |           |               |
     //      |___________|               |______
-    //<-t0-> <-t_down--> <----t_up----->
+    //<(-t0)> <-t_down--> <----t_up----->
     ///////////////////////////////////
+    enum class TIME_TYPE {
+        T_DOWN,
+        T_UP,
+        T0,
+    };
     
     float t_down = 1.0f;
     float t_up = 1.0f;
     float t0 = 0.0f;
 
+
+    bool set_times(sf::RenderWindow &window, TIME_TYPE time_type);
+
   public:
-    Laser(const sf::FloatRect &floatrect, const float angle);
+    std::list<sf::Text>::iterator text_it;
+
+    std::string get_times() const;
+    
+    Laser(const sf::FloatRect &floatrect, const float angle, sf::RenderWindow &window);
+
+    Laser(const sf::FloatRect &floatrect, const float angle, float T_down, float T_up, float T_0);
 
     ~Laser() = default;
 
@@ -147,6 +169,8 @@ class Laser : public sf::RectangleShape {
     Laser(Laser&& value);
 
     Laser& operator=(Laser&& value);
+
+    float get_angle() const;
 
     static void set_shader();
 
@@ -161,6 +185,8 @@ class Door : public sf::RectangleShape {
 
   public:
     Door(const sf::FloatRect &floatrect, sf::RenderWindow &window);
+
+    Door(const sf::FloatRect &floatrect, const sf::Color &color);
 
     ~Door() = default;
 
@@ -181,6 +207,8 @@ class Key : public sf::RectangleShape {
   public:
     Key(const sf::FloatRect &floatrect, sf::RenderWindow &window);
 
+    Key(const sf::FloatRect &floatrect, const sf::Color &color);
+
     ~Key() = default;
 
     Key(const Key& value);
@@ -198,6 +226,8 @@ class Finish : public sf::RectangleShape {
     sf::Texture texture;
 
   public:
+    Finish() = default;
+
     Finish(const sf::FloatRect &floatrect);
 
     ~Finish() = default;
@@ -234,6 +264,9 @@ class Background : public sf::RectangleShape {
 
 
 class Game_Objects : public sf::Drawable {
+    LEVEL_SELECTION_TYPE level_selection_type;
+    sf::Font arial;
+
     //Collision with background
     std::list<Block> block_list;
     std::list<Tramplin> tramplin_list;
@@ -245,18 +278,22 @@ class Game_Objects : public sf::Drawable {
     std::list<Stair> stair_list;
     std::list<Laser> laser_list;
     std::unordered_multimap<int, Key> key_list;
-    Finish finish = Finish(sf::FloatRect(-0.5f, -2.5f, 1.0f, 1.0f));
+    Finish finish;
 
+    std::list<sf::Text> laser_disription_list;
     Player player;
-
-    //TODO: LOAD METHOD
+    
 
     bool intersects(const sf::FloatRect &floatrect) const;
 
     bool intersects_for_background(const sf::FloatRect &floatrect) const;
 
+    void load(const std::string &level_name);
+
   public:
-    Game_Objects();
+    void save(const std::string &level_name) const;
+
+    Game_Objects(LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name);
 
     void add(sf::RenderWindow &window, GAME_OBJECT_TYPE type, const sf::FloatRect &floatrect, const float angle);
 

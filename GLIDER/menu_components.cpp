@@ -307,7 +307,7 @@ namespace krv {
         fin_levels.close();
 
         std::ofstream fin(levels_folder + level_name + ".txt");
-        fin << "0.0 0.0\n";
+        fin << "-0.5 -1.5\n0 block:\n0 spikes:\n0 tramplins:\n0 shurikens:\n0 stairs:\n0 lasers:\n0 doors:\n0 keys:\n0 backgrounds:\n";
         fin.close();
     }
 

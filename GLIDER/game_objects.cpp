@@ -1,8 +1,11 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <fstream>
 #include <list>
 #include <vector>
 #include <utility>
+#include <cmath>
+#include <string>
 
 #include "game_objects.hpp"
 
@@ -12,26 +15,30 @@
 
 
 /////////////////////////////////////////////////////////////////////////
-#define COPY_AND_MOVE_CONSTRUCTOR(NAME) \
+#define COPY_AND_MOVE_CONSTRUCTOR(NAME, ...) \
 NAME::NAME(const NAME& value) : sf::RectangleShape(value) {\
+    __VA_ARGS__\
     texture = value.texture;\
     setTexture(&texture);\
 }\
 \
 NAME& NAME::operator=(const NAME& value) {\
     (*this).sf::RectangleShape::operator=(value);\
+    __VA_ARGS__\
     texture = value.texture;\
     setTexture(&texture);\
     return *this;\
 }\
 \
 NAME::NAME(NAME&& value) : sf::RectangleShape(std::move(value)) {\
+    __VA_ARGS__\
     texture = std::move(value.texture);\
     setTexture(&texture);\
 }\
 \
 NAME& NAME::operator=(NAME&& value) {\
     (*this).sf::RectangleShape::operator=(std::move(value));\
+    __VA_ARGS__\
     texture = std::move(value.texture);\
     setTexture(&texture);\
     return *this;\
@@ -64,6 +71,7 @@ GAME_OBJECTS_SEARCH_FOR_LIST(ITER_TYPE, Laser, laser_list, RECT, RESULT)
 GAME_OBJECTS_SEARCH_FOR_MAP(ITER_TYPE, Door, door_list, RECT, RESULT) \
 GAME_OBJECTS_SEARCH_FOR_MAP(ITER_TYPE, Key, key_list, RECT, RESULT)
 /////////////////////////////////////////////////////////////////
+
 
 
 
@@ -247,11 +255,15 @@ COPY_AND_MOVE_CONSTRUCTOR(Block)
 
 
 
-Spike::Spike(const sf::FloatRect &floatrect, const float angle) {
+Spike::Spike(const sf::FloatRect &floatrect, const float angle) : angle(angle) {
     constructor_template(GAME_OBJECT_TYPE::SPIKE, (*this), texture, floatrect, angle);
 }
 
-COPY_AND_MOVE_CONSTRUCTOR(Spike)
+float Spike::get_angle() const {
+    return angle;
+}
+
+COPY_AND_MOVE_CONSTRUCTOR(Spike, angle = value.angle;)
 
 
 
@@ -278,22 +290,156 @@ COPY_AND_MOVE_CONSTRUCTOR(Shuriken)
 
 
 
-Stair::Stair(const sf::FloatRect &floatrect, const float angle) {
+Stair::Stair(const sf::FloatRect &floatrect, const float angle) : angle(angle) {
     half_constructor_template(GAME_OBJECT_TYPE::STAIR, (*this), texture, floatrect, angle);
 }
 
-COPY_AND_MOVE_CONSTRUCTOR(Stair)
+float Stair::get_angle() const {
+    return angle;
+}
+
+COPY_AND_MOVE_CONSTRUCTOR(Stair, angle = value.angle;)
 
 
 
 sf::Shader Laser::shader;
 
-Laser::Laser(const sf::FloatRect &floatrect, const float angle) {
-    //TODO: Time, period
-    half_constructor_template(GAME_OBJECT_TYPE::LASER, (*this), texture, floatrect, angle);
+bool Laser::set_times(sf::RenderWindow &window, TIME_TYPE time_type) {
+    sf::Font arial;
+    arial.loadFromFile("../pic/text/arial.ttf");
+    sf::View old_view(window.getView());
+    window.setView(window.getDefaultView());
+
+    sf::RectangleShape background(sf::Vector2f(800.0f, 600.0f));
+    sf::Texture background_texture;
+    background_texture.loadFromFile("../pic/times.png", sf::IntRect(80*static_cast<int>(time_type), 0, 80, 60));
+    background.setTexture(&background_texture);
+
+    std::string introduction = "Enter number:\n";
+    sf::Text text(introduction, arial, 30);
+    text.setPosition(0.0f, 270.0f);
+
+    std::string enter_text;
+    bool valid_enter_number = false;
+
+    bool escape = false;
+
+    while (window.isOpen()) {
+        sf::Event event;
+
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                window.close();
+            }
+            if (event.type == sf::Event::TextEntered || event.type == sf::Event::KeyPressed) {
+                if (event.type == sf::Event::TextEntered) {
+                    sf::Uint32 text = event.text.unicode;
+                    if ((text >= '0' && text <= '9') || text == '.') {
+                        enter_text += static_cast<char>(text);
+                    }
+                }
+                if (event.type == sf::Event::KeyPressed) {
+                    if (event.key.code == sf::Keyboard::BackSpace) {
+                        if (!enter_text.empty()) {
+                            enter_text.erase(--enter_text.end());
+                        }
+                    }
+                    if (event.key.code == sf::Keyboard::Escape) {
+                        if (time_type == TIME_TYPE::T_DOWN) {
+                            t_down = 1.0f;
+                            t_up = 1.0f;
+                            t0 = 0.0f;
+                            window.setView(old_view);
+                            return false;
+                        }
+                        else {
+                            return false;
+                        }
+                    }
+                    if (event.key.code == sf::Keyboard::Enter) {
+                        if (valid_enter_number) {
+                            if (time_type == TIME_TYPE::T_DOWN) {
+                                t_down = std::stof(enter_text);
+                                escape = set_times(window, TIME_TYPE::T_UP);
+                            }
+                            if (time_type == TIME_TYPE::T_UP) {
+                                t_up = std::stof(enter_text);
+                                escape = set_times(window, TIME_TYPE::T0);
+                            }
+                            if (time_type == TIME_TYPE::T0) {
+                                t0 = std::stof(enter_text);
+                                return true;
+                            }
+                        }
+                    }
+                }
+                text.setString(introduction + enter_text);
+
+                float enter_number;
+                if (enter_text.size() != 0 && enter_text[0] != '.') {
+                    enter_number = std::stof(enter_text);
+                    if (time_type == TIME_TYPE::T_DOWN || time_type == TIME_TYPE::T_UP) {
+                        if (!std::isnormal(enter_number) || enter_number > 10.0f) {
+                            valid_enter_number = false;
+                            text.setFillColor(sf::Color::Red);
+                        }
+                        else {
+                            valid_enter_number = true;
+                            text.setFillColor(sf::Color::White);
+                        }
+                    }
+                    else {
+                        if (!std::isnormal(enter_number) || enter_number > 20.0f) {
+                            valid_enter_number = false;
+                            text.setFillColor(sf::Color::Red);
+                        }
+                        else {
+                            valid_enter_number = true;
+                            text.setFillColor(sf::Color::White);
+                        }
+                    }
+                }
+                else {
+                    valid_enter_number = false;
+                    text.setFillColor(sf::Color::Red);
+                }
+            }
+        }
+        if (escape) {
+            window.setView(old_view);
+            return true;
+        }
+
+        window.clear();
+        window.draw(background);
+        window.draw(text);
+        window.display();
+    }
+
+    window.setView(old_view);
 }
 
-Laser::Laser(const Laser& value) : sf::RectangleShape(value) {
+std::string Laser::get_times() const {
+    return std::to_string(t_down) + "\n" + std::to_string(t_up) + "\n" + std::to_string(t0);
+}
+
+float Laser::get_angle() const {
+    return angle;
+}
+
+Laser::Laser(const sf::FloatRect &floatrect, const float angle, sf::RenderWindow &window) : angle(angle) {
+    half_constructor_template(GAME_OBJECT_TYPE::LASER, (*this), texture, floatrect, angle);
+    set_times(window, TIME_TYPE::T_DOWN);
+}
+
+Laser::Laser(const sf::FloatRect &floatrect, const float angle, float T_down, float T_up, float T_0) : angle(angle) {
+    half_constructor_template(GAME_OBJECT_TYPE::LASER, (*this), texture, floatrect, angle);
+    t0 = T_0;
+    t_down = T_down;
+    t_up = T_up;
+}
+
+Laser::Laser(const Laser& value) : sf::RectangleShape(value), angle(value.angle) {
     t_down = value.t_down;
     t_up = value.t_up;
     t0 = value.t0;
@@ -302,6 +448,7 @@ Laser::Laser(const Laser& value) : sf::RectangleShape(value) {
 }
 
 Laser& Laser::operator=(const Laser& value) {
+    angle = value.angle;
     (*this).sf::RectangleShape::operator=(value);
     t_down = value.t_down;
     t_up = value.t_up;
@@ -311,7 +458,7 @@ Laser& Laser::operator=(const Laser& value) {
     return *this;
 }
 
-Laser::Laser(Laser&& value) : sf::RectangleShape(std::move(value)) {
+Laser::Laser(Laser&& value) : sf::RectangleShape(std::move(value)), angle(value.angle) {
     t_down = value.t_down;
     t_up = value.t_up;
     t0 = value.t0;
@@ -320,6 +467,7 @@ Laser::Laser(Laser&& value) : sf::RectangleShape(std::move(value)) {
 }
 
 Laser& Laser::operator=(Laser&& value) {
+    angle = value.angle;
     (*this).sf::RectangleShape::operator=(std::move(value));
     t_down = value.t_down;
     t_up = value.t_up;
@@ -348,6 +496,11 @@ Door::Door(const sf::FloatRect &floatrect, sf::RenderWindow &window) {
     setFillColor(choose_color(window));
 }
 
+Door::Door(const sf::FloatRect &floatrect, const sf::Color &color) {
+    constructor_template(GAME_OBJECT_TYPE::DOOR, (*this), texture, floatrect);
+    setFillColor(color);
+}
+
 COPY_AND_MOVE_CONSTRUCTOR(Door)
 
 
@@ -355,6 +508,11 @@ COPY_AND_MOVE_CONSTRUCTOR(Door)
 Key::Key(const sf::FloatRect &floatrect, sf::RenderWindow &window) {
     constructor_template(GAME_OBJECT_TYPE::KEY, (*this), texture, floatrect);
     setFillColor(choose_color(window));
+}
+
+Key::Key(const sf::FloatRect &floatrect, const sf::Color &color) {
+    constructor_template(GAME_OBJECT_TYPE::KEY, (*this), texture, floatrect);
+    setFillColor(color);
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Key)
@@ -403,7 +561,13 @@ void Game_Objects::add(sf::RenderWindow &window, GAME_OBJECT_TYPE type, const sf
                     break;
                 }
                 case GAME_OBJECT_TYPE::LASER: {
-                    laser_list.push_front(Laser(floatrect, angle));
+                    laser_list.push_front(Laser(floatrect, angle, window));
+                    if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
+                        laser_disription_list.push_front(sf::Text(laser_list.front().get_times(), arial));
+                        laser_list.front().text_it = laser_disription_list.begin();
+                        laser_disription_list.front().setPosition(laser_list.front().getPosition());
+                        laser_disription_list.front().setScale(1/120.0f, 1/120.0f);
+                    }
                     break;
                 }
                 case GAME_OBJECT_TYPE::DOOR: {
@@ -438,7 +602,7 @@ void Game_Objects::remove(const sf::FloatRect &floatrect) {
     GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Spike, spike_list, floatrect, spike_list.erase(it); return;)
     GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Tramplin, tramplin_list, floatrect, tramplin_list.erase(it); return;)
     GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Stair, stair_list, floatrect, stair_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Laser, laser_list, floatrect, laser_list.erase(it); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Laser, laser_list, floatrect, laser_disription_list.erase(it->text_it); laser_list.erase(it); return;)
 
     GAME_OBJECTS_SEARCH_FOR_MAP(iterator, Door, door_list, floatrect, door_list.erase(it); return;)
     GAME_OBJECTS_SEARCH_FOR_MAP(iterator, Key, key_list, floatrect, key_list.erase(it); return;)
@@ -476,6 +640,9 @@ void Game_Objects::draw(sf::RenderTarget& target, sf::RenderStates states) const
     GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Stair, stair_list, rect, target.draw((*it), states);)
     GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Laser, laser_list, rect, target.draw((*it), states);)
     GAME_OBJECTS_SEARCH_MAP(const_iterator, rect, target.draw(it->second, states);)
+    if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
+        GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, sf::Text, laser_disription_list, rect, target.draw((*it), states);)
+    }
     if (rect.intersects(finish.getGlobalBounds())) {
         target.draw(finish, states);
     }
@@ -496,8 +663,166 @@ sf::FloatRect Game_Objects::remove_shading(const sf::FloatRect &floatrect) const
     return sf::FloatRect(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-Game_Objects::Game_Objects() {
+void Game_Objects::load(const std::string &level_name) {
+    int number;
+    float pos_x, pos_y, size_x, size_y;
+    std::ifstream fout(level_name);
+    //Finish
+    fout >> pos_x >> pos_y;
+    finish = Finish(sf::FloatRect(pos_x, pos_y, 1.0f, 1.0f));
+    //Block
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        fout >> pos_x >> pos_y >> size_x >> size_y;
+        block_list.push_front(Block(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+    }
+    //Spike
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        float angle;
+        fout >> pos_x >> pos_y >> size_x >> size_y >> angle;
+        spike_list.push_front(Spike(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
+    }
+    //Tramplin
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        fout >> pos_x >> pos_y >> size_x >> size_y;
+        tramplin_list.push_front(Tramplin(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+    }
+    //Shuriken
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        fout >> pos_x >> pos_y >> size_x >> size_y;
+        shuriken_list.push_front(Shuriken(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+    }
+    //Stair
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        float angle;
+        fout >> pos_x >> pos_y >> size_x >> size_y >> angle;
+        stair_list.push_front(Stair(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
+    }
+    //Laser
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        float angle, T_down, T_up, T_0;
+        fout >> pos_x >> pos_y >> size_x >> size_y >> angle >> T_down >> T_up >> T_0;
+        laser_list.push_front(Laser(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle, T_down, T_up, T_0));
+        if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
+            laser_disription_list.push_front(sf::Text(laser_list.front().get_times(), arial));
+            laser_list.front().text_it = laser_disription_list.begin();
+            laser_disription_list.front().setPosition(laser_list.front().getPosition());
+            laser_disription_list.front().setScale(1/120.0f, 1/120.0f);
+        }
+    }
+    //Door
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        int r, g, b, a;
+        fout >> pos_x >> pos_y >> size_x >> size_y >> r >> g >> b >> a;
+        Door door(sf::FloatRect(pos_x, pos_y, size_x, size_y), sf::Color(r, g, b, a));
+        door_list.insert(std::make_pair(door.getFillColor().toInteger(), std::move(door)));
+    }
+    //Key
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        int r, g, b, a;
+        fout >> pos_x >> pos_y >> size_x >> size_y >> r >> g >> b >> a;
+        Key key(sf::FloatRect(pos_x, pos_y, size_x, size_y), sf::Color(r, g, b, a));
+        key_list.insert(std::make_pair(key.getFillColor().toInteger(), std::move(key)));
+    }
+    //Background
+    fout >> number;
+    fout.ignore(99999, '\n');
+    for (int i = 0; i < number; i++) {
+        fout >> pos_x >> pos_y >> size_x >> size_y;
+        background_list.push_front(Background(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+    }
+    
+
+    fout.close();
+}
+
+void Game_Objects::save(const std::string &level_name) const {
+    sf::FloatRect buff;
+    std::ofstream fin(level_name);
+
+    //Finish
+    buff = finish.getGlobalBounds();
+    fin << buff.left << " " << buff.top << "\n";
+    //Block
+    fin << block_list.size() << " blocks:\n";
+    for (const auto& it : block_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << "\n";
+    }
+    //Spike
+    fin << spike_list.size() << " spikes:\n";
+    for (const auto& it : spike_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << it.get_angle() << "\n";
+    }
+    //Tramplin
+    fin << tramplin_list.size() << " tramplins:\n";
+    for (const auto& it : tramplin_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << "\n";
+    }
+    //Shuriken
+    fin << shuriken_list.size() << " shurikens:\n";
+    for (const auto& it : shuriken_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << "\n";
+    }
+    //Stair
+    fin << stair_list.size() << " stairs:\n";
+    for (const auto& it : stair_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << it.get_angle() << "\n";
+    }
+    //Laser
+    fin << laser_list.size() << " lasers:\n";
+    for (const auto& it : laser_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << it.get_angle() << " " << it.get_times() << "\n";
+    }
+    //Door
+    fin << door_list.size() << " doors:\n";
+    for (const auto& it : door_list) {
+        buff = it.second.getGlobalBounds();
+        sf::Color color = it.second.getFillColor();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << color.r << " " << color.g << " " << color.b << " " << color.a << "\n";
+    }
+    //Key
+    fin << key_list.size() << " keys:\n";
+    for (const auto& it : key_list) {
+        buff = it.second.getGlobalBounds();
+        sf::Color color = it.second.getFillColor();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << color.r << " " << color.g << " " << color.b << " " << color.a << "\n";
+    }
+    //Background
+    fin << background_list.size() << " backgrounds:\n";
+    for (const auto& it : background_list) {
+        buff = it.getGlobalBounds();
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << "\n";
+    }
+    //End
+    fin.close();
+}
+
+Game_Objects::Game_Objects(LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name) : level_selection_type(level_selection_type) {
+    arial.loadFromFile("../pic/text/arial.ttf");
     Laser::set_shader();
+
+    load(level_name);
 }
 
 

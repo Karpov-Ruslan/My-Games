@@ -33,10 +33,13 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
     window.setView(view);
     MyMouse mouse;
 /////////////////////////>   Moving Elements   <//////////////////////////////////
-    Game_Objects game_objects;
+    Game_Objects game_objects(LEVEL_SELECTION_TYPE::BUILD, level_file);
     Build_Cursor build_cursor(1.0f);
 /////////////////////////>   Static Elements   <//////////////////////////////////
     Build_Type build_type;
+    //TODO: Make buttons in build menu
+    // sf::Texture buttons_texture;
+    // buttons_texture.loadFromFile("../pic/build_menu_buttons.png");
     // sf::RectangleShape game_object_type(sf::Vector2f());
     // game_object_type.set
 
@@ -60,6 +63,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                         build_cursor.change_press();
                     }
                     else {
+                        game_objects.save(level_file);
                         window.setView(window.getDefaultView());
                         return;
                     }
