@@ -15,14 +15,29 @@ enum class GAME_OBJECT_TYPE : int {
     BLOCK,
     SPIKE,
     TRAMPLIN,
-    SHURIKEN,
+    SHURIKEN, //Update with time
     STAIR,
-    LASER,
+    LASER, //Update with time
     DOOR,
     KEY,
     FINISH,
     BACKGROUND,
     NOTHING,
+};
+
+class Sky : public sf::Drawable {
+    sf::Texture sky_texture;
+    sf::RectangleShape sky;
+    sf::Texture clouds_texture;
+    sf::RectangleShape clouds;
+
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const;
+
+  public:
+    Sky(const sf::RenderWindow &window);
+
+    void update(const float d_time);
+
 };
 
 class Block : public sf::RectangleShape {
@@ -40,6 +55,8 @@ class Block : public sf::RectangleShape {
     Block(Block&& value);
 
     Block& operator=(Block&& value);
+
+    static void player_collision(Player &player, const std::list<Block> &list);
 };
 
 
@@ -62,6 +79,8 @@ class Spike : public sf::RectangleShape {
     Spike& operator=(Spike&& value);
 
     float get_angle() const;
+
+    static void player_collision(Player &player, const std::list<Spike> &list);
 };
 
 
@@ -81,6 +100,8 @@ class Tramplin : public sf::RectangleShape {
     Tramplin(Tramplin&& value);
 
     Tramplin& operator=(Tramplin&& value);
+
+    static void player_collision(Player &player, const std::list<Tramplin> &list);
 };
 
 
@@ -100,6 +121,10 @@ class Shuriken : public sf::RectangleShape {
     Shuriken(Shuriken&& value);
 
     Shuriken& operator=(Shuriken&& value);
+
+    void update(const float d_time);
+
+    static void player_collision(Player &player, std::list<Shuriken> &list, const float d_time);
 };
 
 
@@ -121,6 +146,8 @@ class Stair : public sf::RectangleShape {
     Stair& operator=(Stair&& value);
 
     float get_angle() const;
+
+    static void player_collision(Player &player, const std::list<Stair> &list);
 };
 
 
@@ -174,6 +201,10 @@ class Laser : public sf::RectangleShape {
 
     static void set_shader();
 
+    void update(const float d_time);
+
+    static void player_collision(Player &player, std::list<Laser> &list, const float d_time);
+
   private:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 };
@@ -197,6 +228,8 @@ class Door : public sf::RectangleShape {
     Door(Door&& value);
 
     Door& operator=(Door&& value);
+
+    static void player_collision(Player &player, const std::unordered_multimap<int, Door> &list);
 };
 
 
@@ -218,6 +251,8 @@ class Key : public sf::RectangleShape {
     Key(Key&& value);
 
     Key& operator=(Key&& value);
+
+    static void player_collision(Player &player, std::unordered_multimap<int, Door> &door_list, std::unordered_multimap<int, Key> &key_list);
 };
 
 
@@ -239,6 +274,8 @@ class Finish : public sf::RectangleShape {
     Finish(Finish&& value);
 
     Finish& operator=(Finish&& value);
+
+    void player_collision(Player &player);
 };
 
 
@@ -282,6 +319,8 @@ class Game_Objects : public sf::Drawable {
 
     std::list<sf::Text> laser_disription_list;
     Player player;
+    //Static
+    Sky sky;
     
 
     bool intersects(const sf::FloatRect &floatrect) const;
@@ -291,9 +330,13 @@ class Game_Objects : public sf::Drawable {
     void load(const std::string &level_name);
 
   public:
+    void player_jump();
+
     void save(const std::string &level_name) const;
 
-    Game_Objects(LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name);
+    void update(const float d_time);
+
+    Game_Objects(const sf::RenderWindow &window, LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name);
 
     void add(sf::RenderWindow &window, GAME_OBJECT_TYPE type, const sf::FloatRect &floatrect, const float angle);
 

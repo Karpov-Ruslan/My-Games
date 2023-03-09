@@ -2,6 +2,7 @@
 #include <cmath>
 #include "menu_components.hpp"
 #include "build_menu.hpp"
+#include "play_game.hpp"
 #include "level_selection_menu.hpp"
 
 namespace krv {
@@ -55,6 +56,7 @@ namespace krv {
                     }
                     if (level_selection_menu == LEVEL_SELECTION_TYPE::PLAY) {
                         //TODO: play game
+                        while (play_game(window, file_list.levels_folder + static_cast<std::string>(cursor.get_mouse_iterator()->text.getString()) + ".txt"));
                     }
                 }
             }

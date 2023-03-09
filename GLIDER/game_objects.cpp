@@ -246,8 +246,57 @@ void half_constructor_template(GAME_OBJECT_TYPE type, sf::RectangleShape &value,
 
 
 
+
+Sky::Sky(const sf::RenderWindow &window) {
+    float x = window.getSize().x, y = window.getSize().y;
+    sky.setSize(sf::Vector2f(x, y));
+    clouds.setSize(sf::Vector2f(2.0f*x, y));
+    sky_texture.loadFromFile("../pic/sky.png");
+    clouds_texture.loadFromFile("../pic/clouds.png");
+    sky.setTexture(&sky_texture);
+    clouds.setTexture(&clouds_texture);
+}
+
+void Sky::update(const float d_time) {
+    clouds.move(-150*d_time, 0.0f);
+    if (clouds.getPosition().x < -800.0f) {
+        clouds.move(800.0f, 0.0f);
+    }
+}
+
+void Sky::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    target.draw(sky, states);
+    target.draw(clouds, states);
+}
+
+
 Block::Block(const sf::FloatRect &floatrect) : sf::RectangleShape() {
     constructor_template(GAME_OBJECT_TYPE::BLOCK, (*this), texture, floatrect);
+}
+
+void Block::player_collision(Player &player, const std::list<Block> &list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (const auto& it : list) {
+        sf::FloatRect intersection;
+        if (it.getGlobalBounds().intersects(player_rect, intersection)) {
+            if (intersection.top > player_rect.top) {
+                player.move(0.0f, -intersection.height);
+                player.on_floor = true;
+            }
+            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
+                player.move(0.0f, intersection.height);
+            }
+            if (intersection.left > player_rect.left) {
+                player.move(-intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
+                player.move(intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            player_rect = player.getGlobalBounds();
+        }
+    }
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Block)
@@ -263,12 +312,49 @@ float Spike::get_angle() const {
     return angle;
 }
 
+void Spike::player_collision(Player &player, const std::list<Spike> &list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (const auto& it : list) {
+        if (it.getGlobalBounds().intersects(player_rect)) {
+            player.death = true;
+            break;
+        }
+    }
+}
+
 COPY_AND_MOVE_CONSTRUCTOR(Spike, angle = value.angle;)
 
 
 
 Tramplin::Tramplin(const sf::FloatRect &floatrect) {
     constructor_template(GAME_OBJECT_TYPE::TRAMPLIN, (*this), texture, floatrect);
+}
+
+void Tramplin::player_collision(Player &player, const std::list<Tramplin> &list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (const auto& it : list) {
+        sf::FloatRect intersection;
+        if (it.getGlobalBounds().intersects(player_rect, intersection)) {
+            if (intersection.top > player_rect.top) {
+                player.move(0.0f, -intersection.height);
+                player.v_y = -player.v_y;
+                player.on_floor = true;
+            }
+            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
+                player.move(0.0f, intersection.height);
+                player.v_y = -player.v_y;
+            }
+            if (intersection.left > player_rect.left) {
+                player.move(-intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
+                player.move(intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            player_rect = player.getGlobalBounds();
+        }
+    }
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Tramplin)
@@ -286,6 +372,29 @@ Shuriken::Shuriken(const sf::FloatRect &floatrect) {
     setTexture(&texture);
 }
 
+void Shuriken::update(const float d_time) {
+    rotate(3600*d_time);
+}
+
+void Shuriken::player_collision(Player &player, std::list<Shuriken> &list, const float d_time) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    float player_x = player.getPosition().x;
+    float player_y = player.getPosition().y;
+    float player_radius = player.getOrigin().x;
+    for (auto& it : list) {
+        it.update(d_time);
+        if (player_rect.intersects(it.getGlobalBounds())) {
+            float it_x = it.getPosition().x;
+            float it_y = it.getPosition().y;
+            float it_radius = it.getOrigin().x;
+            if (std::sqrt((player_x - it_x)*(player_x - it_x) + (player_y - it_y)*(player_y - it_y)) < (it_radius + player_radius)) {
+                player.death = true;
+                break;
+            }
+        }
+    }
+}
+
 COPY_AND_MOVE_CONSTRUCTOR(Shuriken)
 
 
@@ -296,6 +405,19 @@ Stair::Stair(const sf::FloatRect &floatrect, const float angle) : angle(angle) {
 
 float Stair::get_angle() const {
     return angle;
+}
+
+void Stair::player_collision(Player &player, const std::list<Stair> &list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (const auto& it : list) {
+        sf::FloatRect intersection;
+        if (it.getGlobalBounds().intersects(player_rect, intersection)) {
+            player.v_y = 0.0f;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {player.v_y -= 7.5f;}
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {player.v_y += 7.5f;}
+            break;
+        }
+    }
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Stair, angle = value.angle;)
@@ -482,6 +604,26 @@ void Laser::set_shader() {
     shader.setUniform("texture", sf::Shader::CurrentTexture);
 }
 
+void Laser::update(const float d_time) {
+    t0 += d_time;
+    if (t0 > t_down + t_up) {t0 -= t_down + t_up;}
+    if (t0 < t_down) {is_work = false;}
+    else {is_work = true;}
+}
+
+void Laser::player_collision(Player &player, std::list<Laser> &list, const float d_time) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (auto& it : list) {
+        it.update(d_time);
+        if (it.getGlobalBounds().intersects(player_rect)) {
+            if (it.is_work) {
+                player.death = true;
+                break;
+            }
+        }
+    }
+}
+
 void Laser::draw(sf::RenderTarget& target, sf::RenderStates states) const {
     if (!is_work) {
         states.shader = &shader;
@@ -501,6 +643,31 @@ Door::Door(const sf::FloatRect &floatrect, const sf::Color &color) {
     setFillColor(color);
 }
 
+void Door::player_collision(Player &player, const std::unordered_multimap<int, Door> &list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (const auto& it : list) {
+        sf::FloatRect intersection;
+        if (it.second.getGlobalBounds().intersects(player_rect, intersection)) {
+            if (intersection.top > player_rect.top) {
+                player.move(0.0f, -intersection.height);
+                player.on_floor = true;
+            }
+            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
+                player.move(0.0f, intersection.height);
+            }
+            if (intersection.left > player_rect.left) {
+                player.move(-intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
+                player.move(intersection.width, 0.0f);
+                player.on_wall = true;
+            }
+            player_rect = player.getGlobalBounds();
+        }
+    }
+}
+
 COPY_AND_MOVE_CONSTRUCTOR(Door)
 
 
@@ -515,6 +682,17 @@ Key::Key(const sf::FloatRect &floatrect, const sf::Color &color) {
     setFillColor(color);
 }
 
+void Key::player_collision(Player &player, std::unordered_multimap<int, Door> &door_list, std::unordered_multimap<int, Key> &key_list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    for (auto& it : key_list) {
+        if (it.second.getGlobalBounds().intersects(player_rect)) {
+            door_list.erase(it.first);
+            key_list.erase(it.first);
+            break;
+        }
+    }
+}
+
 COPY_AND_MOVE_CONSTRUCTOR(Key)
 
 
@@ -524,6 +702,12 @@ Finish::Finish(const sf::FloatRect &floatrect) {
     setSize(sf::Vector2f(1.0f, 1.0f));
     texture.loadFromFile("../pic/game_objects.png", sf::IntRect(static_cast<int>(GAME_OBJECT_TYPE::FINISH)*factor, 0, factor, factor));
     setTexture(&texture);
+}
+
+void Finish::player_collision(Player &player) {
+    if (this->getGlobalBounds().intersects(player.getGlobalBounds())) {
+        player.finish = true;
+    }
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Finish)
@@ -818,7 +1002,16 @@ void Game_Objects::save(const std::string &level_name) const {
     fin.close();
 }
 
-Game_Objects::Game_Objects(LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name) : level_selection_type(level_selection_type) {
+void Game_Objects::player_jump() {player.jump = true;}
+
+void Game_Objects::update(const float d_time) {
+    player.update(d_time);
+    sky.update(d_time);
+    Block::player_collision(player, block_list);
+    //TODO : Collisions
+}
+
+Game_Objects::Game_Objects(const sf::RenderWindow &window, LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name) : level_selection_type(level_selection_type), sky(window) {
     arial.loadFromFile("../pic/text/arial.ttf");
     Laser::set_shader();
 

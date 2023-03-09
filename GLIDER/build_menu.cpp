@@ -33,15 +33,17 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
     window.setView(view);
     MyMouse mouse;
 /////////////////////////>   Moving Elements   <//////////////////////////////////
-    Game_Objects game_objects(LEVEL_SELECTION_TYPE::BUILD, level_file);
+    Game_Objects game_objects(window, LEVEL_SELECTION_TYPE::BUILD, level_file);
     Build_Cursor build_cursor(1.0f);
 /////////////////////////>   Static Elements   <//////////////////////////////////
     Build_Type build_type;
-    //TODO: Make buttons in build menu
-    // sf::Texture buttons_texture;
-    // buttons_texture.loadFromFile("../pic/build_menu_buttons.png");
-    // sf::RectangleShape game_object_type(sf::Vector2f());
-    // game_object_type.set
+
+    sf::Texture buttons_texture;
+    buttons_texture.loadFromFile("../pic/build_menu_buttons.png");
+    Quadratic_Button exit_button(773.0f, 27.0f, 50.0f, buttons_texture);
+    exit_button.setTextureRect(sf::IntRect(0, 50, 50, 50));
+    Quadratic_Button save_button(721.0f, 27.0f, 50.0f, buttons_texture, 3);
+    save_button.setTextureRect(sf::IntRect(0, 0, 50, 50));
 
 
     while (window.isOpen()) {
@@ -75,13 +77,23 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
             }
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Button::Left) {
-                    if (build_cursor.get_pressed()) {
-                        game_objects.add(window, build_cursor.get_type(), build_cursor.get_floatrect(), build_cursor.get_rotation());
+                    if (exit_button.mouse_on(window)) {
+                        game_objects.save(level_file);
+                        window.setView(window.getDefaultView());
+                        return;
                     }
-                    if (build_cursor.get_type() == GAME_OBJECT_TYPE::NOTHING) {
-                        game_objects.remove(build_cursor.get_floatrect());
+                    else if (save_button.mouse_on(window)) {
+                        game_objects.save(level_file);
                     }
-                    build_cursor.change_press();
+                    else {
+                        if (build_cursor.get_pressed()) {
+                            game_objects.add(window, build_cursor.get_type(), build_cursor.get_floatrect(), build_cursor.get_rotation());
+                        }
+                        if (build_cursor.get_type() == GAME_OBJECT_TYPE::NOTHING) {
+                            game_objects.remove(build_cursor.get_floatrect());
+                        }
+                        build_cursor.change_press();
+                    }
                 }
                 if (event.mouseButton.button == sf::Mouse::Button::Middle) {
                     build_cursor.rotate();
@@ -117,6 +129,8 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
             }
             build_cursor.update(game_objects, window, view);
         }
+        exit_button.shading(window);
+        save_button.shading(window);
 
 
 /////////////////////////>     Background     <///////////////////////////////////
@@ -131,6 +145,8 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
         window.setView(window.getDefaultView());
 
         window.draw(build_type);
+        window.draw(exit_button);
+        window.draw(save_button);
 
         window.display();
     }
