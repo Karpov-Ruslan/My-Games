@@ -44,9 +44,9 @@ NAME& NAME::operator=(NAME&& value) {\
     return *this;\
 }
 /////////////////////////////////////////////////////////////////
-#define GAME_OBJECTS_SEARCH_FOR_LIST(ITER_TYPE, CLASS, LISTNAME, RECT, RESULT) \
-for (std::list<CLASS>::ITER_TYPE it = LISTNAME.begin(), ite = LISTNAME.end(); it != ite; it++) {\
-    if (RECT.intersects((*it).getGlobalBounds())) {\
+#define GAME_OBJECTS_SEARCH_FOR_LIST(LISTNAME, RECT, RESULT) \
+for (int n = 0, size = LISTNAME.size(); n < size; n++) {\
+    if (RECT.intersects(LISTNAME[n].getGlobalBounds())) {\
         RESULT\
     }\
 }
@@ -274,31 +274,6 @@ Block::Block(const sf::FloatRect &floatrect) : sf::RectangleShape() {
     constructor_template(GAME_OBJECT_TYPE::BLOCK, (*this), texture, floatrect);
 }
 
-void Block::player_collision(Player &player, const std::list<Block> &list) {
-    sf::FloatRect player_rect = player.getGlobalBounds();
-    for (const auto& it : list) {
-        sf::FloatRect intersection;
-        if (it.getGlobalBounds().intersects(player_rect, intersection)) {
-            if (intersection.top > player_rect.top) {
-                player.move(0.0f, -intersection.height);
-                player.on_floor = true;
-            }
-            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
-                player.move(0.0f, intersection.height);
-            }
-            if (intersection.left > player_rect.left) {
-                player.move(-intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
-                player.move(intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            player_rect = player.getGlobalBounds();
-        }
-    }
-}
-
 COPY_AND_MOVE_CONSTRUCTOR(Block)
 
 
@@ -312,7 +287,7 @@ float Spike::get_angle() const {
     return angle;
 }
 
-void Spike::player_collision(Player &player, const std::list<Spike> &list) {
+void Spike::player_collision(Player &player, const std::vector<Spike> &list) {
     sf::FloatRect player_rect = player.getGlobalBounds();
     for (const auto& it : list) {
         if (it.getGlobalBounds().intersects(player_rect)) {
@@ -328,33 +303,6 @@ COPY_AND_MOVE_CONSTRUCTOR(Spike, angle = value.angle;)
 
 Tramplin::Tramplin(const sf::FloatRect &floatrect) {
     constructor_template(GAME_OBJECT_TYPE::TRAMPLIN, (*this), texture, floatrect);
-}
-
-void Tramplin::player_collision(Player &player, const std::list<Tramplin> &list) {
-    sf::FloatRect player_rect = player.getGlobalBounds();
-    for (const auto& it : list) {
-        sf::FloatRect intersection;
-        if (it.getGlobalBounds().intersects(player_rect, intersection)) {
-            if (intersection.top > player_rect.top) {
-                player.move(0.0f, -intersection.height);
-                player.v_y = -player.v_y;
-                player.on_floor = true;
-            }
-            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
-                player.move(0.0f, intersection.height);
-                player.v_y = -player.v_y;
-            }
-            if (intersection.left > player_rect.left) {
-                player.move(-intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
-                player.move(intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            player_rect = player.getGlobalBounds();
-        }
-    }
 }
 
 COPY_AND_MOVE_CONSTRUCTOR(Tramplin)
@@ -373,24 +321,25 @@ Shuriken::Shuriken(const sf::FloatRect &floatrect) {
 }
 
 void Shuriken::update(const float d_time) {
-    rotate(3600*d_time);
+    rotate(1800.0f*d_time);
+    if (getRotation() > 360.0f) {
+        rotate(-360.0f);
+    }
 }
 
-void Shuriken::player_collision(Player &player, std::list<Shuriken> &list, const float d_time) {
+void Shuriken::player_collision(Player &player, std::vector<Shuriken> &list, const float d_time) {
     sf::FloatRect player_rect = player.getGlobalBounds();
     float player_x = player.getPosition().x;
     float player_y = player.getPosition().y;
     float player_radius = player.getOrigin().x;
     for (auto& it : list) {
         it.update(d_time);
-        if (player_rect.intersects(it.getGlobalBounds())) {
-            float it_x = it.getPosition().x;
-            float it_y = it.getPosition().y;
-            float it_radius = it.getOrigin().x;
-            if (std::sqrt((player_x - it_x)*(player_x - it_x) + (player_y - it_y)*(player_y - it_y)) < (it_radius + player_radius)) {
-                player.death = true;
-                break;
-            }
+        float it_x = it.getPosition().x;
+        float it_y = it.getPosition().y;
+        float it_radius = it.getOrigin().x;
+        if (std::sqrt((player_x - it_x)*(player_x - it_x) + (player_y - it_y)*(player_y - it_y)) < (it_radius + player_radius)) {
+            player.death = true;
+            break;
         }
     }
 }
@@ -407,13 +356,13 @@ float Stair::get_angle() const {
     return angle;
 }
 
-void Stair::player_collision(Player &player, const std::list<Stair> &list) {
+void Stair::player_collision(Player &player, const std::vector<Stair> &list) {
     sf::FloatRect player_rect = player.getGlobalBounds();
     for (const auto& it : list) {
         sf::FloatRect intersection;
         if (it.getGlobalBounds().intersects(player_rect, intersection)) {
             player.v_y = 0.0f;
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {player.v_y -= 7.5f;}
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {player.v_y -= 7.5f;}
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {player.v_y += 7.5f;}
             break;
         }
@@ -455,9 +404,11 @@ bool Laser::set_times(sf::RenderWindow &window, TIME_TYPE time_type) {
             }
             if (event.type == sf::Event::TextEntered || event.type == sf::Event::KeyPressed) {
                 if (event.type == sf::Event::TextEntered) {
-                    sf::Uint32 text = event.text.unicode;
-                    if ((text >= '0' && text <= '9') || text == '.') {
-                        enter_text += static_cast<char>(text);
+                    if (enter_text.size() <= 12) {
+                        sf::Uint32 text = event.text.unicode;
+                        if ((text >= '0' && text <= '9') || text == '.') {
+                            enter_text += static_cast<char>(text);
+                        }
                     }
                 }
                 if (event.type == sf::Event::KeyPressed) {
@@ -511,7 +462,7 @@ bool Laser::set_times(sf::RenderWindow &window, TIME_TYPE time_type) {
                         }
                     }
                     else {
-                        if (!std::isnormal(enter_number) || enter_number > 20.0f) {
+                        if (enter_number > 20.0f) {
                             valid_enter_number = false;
                             text.setFillColor(sf::Color::Red);
                         }
@@ -611,7 +562,7 @@ void Laser::update(const float d_time) {
     else {is_work = true;}
 }
 
-void Laser::player_collision(Player &player, std::list<Laser> &list, const float d_time) {
+void Laser::player_collision(Player &player, std::vector<Laser> &list, const float d_time) {
     sf::FloatRect player_rect = player.getGlobalBounds();
     for (auto& it : list) {
         it.update(d_time);
@@ -643,31 +594,6 @@ Door::Door(const sf::FloatRect &floatrect, const sf::Color &color) {
     setFillColor(color);
 }
 
-void Door::player_collision(Player &player, const std::unordered_multimap<int, Door> &list) {
-    sf::FloatRect player_rect = player.getGlobalBounds();
-    for (const auto& it : list) {
-        sf::FloatRect intersection;
-        if (it.second.getGlobalBounds().intersects(player_rect, intersection)) {
-            if (intersection.top > player_rect.top) {
-                player.move(0.0f, -intersection.height);
-                player.on_floor = true;
-            }
-            else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
-                player.move(0.0f, intersection.height);
-            }
-            if (intersection.left > player_rect.left) {
-                player.move(-intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
-                player.move(intersection.width, 0.0f);
-                player.on_wall = true;
-            }
-            player_rect = player.getGlobalBounds();
-        }
-    }
-}
-
 COPY_AND_MOVE_CONSTRUCTOR(Door)
 
 
@@ -686,8 +612,9 @@ void Key::player_collision(Player &player, std::unordered_multimap<int, Door> &d
     sf::FloatRect player_rect = player.getGlobalBounds();
     for (auto& it : key_list) {
         if (it.second.getGlobalBounds().intersects(player_rect)) {
-            door_list.erase(it.first);
-            key_list.erase(it.first);
+            int color = it.first;
+            door_list.erase(color);
+            key_list.erase(color);
             break;
         }
     }
@@ -729,28 +656,27 @@ void Game_Objects::add(sf::RenderWindow &window, GAME_OBJECT_TYPE type, const sf
         if (!intersects(floatrect) && !floatrect.intersects(sf::FloatRect(-0.5f, -0.5f, 1.0f, 1.0f))) {
             switch (type) {
                 case GAME_OBJECT_TYPE::BLOCK: {
-                    block_list.push_front(Block(floatrect));
+                    block_list.push_back(Block(floatrect));
                     break;
                 }
                 case GAME_OBJECT_TYPE::SPIKE: {
-                    spike_list.push_front(Spike(floatrect, angle));
+                    spike_list.push_back(Spike(floatrect, angle));
                     break;
                 }
                 case GAME_OBJECT_TYPE::TRAMPLIN: {
-                    tramplin_list.push_front(Tramplin(floatrect));
+                    tramplin_list.push_back(Tramplin(floatrect));
                     break;
                 }
                 case GAME_OBJECT_TYPE::STAIR: {
-                    stair_list.push_front(Stair(floatrect, angle));
+                    stair_list.push_back(Stair(floatrect, angle));
                     break;
                 }
                 case GAME_OBJECT_TYPE::LASER: {
-                    laser_list.push_front(Laser(floatrect, angle, window));
+                    laser_list.push_back(Laser(floatrect, angle, window));
                     if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
-                        laser_disription_list.push_front(sf::Text(laser_list.front().get_times(), arial));
-                        laser_list.front().text_it = laser_disription_list.begin();
-                        laser_disription_list.front().setPosition(laser_list.front().getPosition());
-                        laser_disription_list.front().setScale(1/120.0f, 1/120.0f);
+                        laser_disription_list.push_back(sf::Text(laser_list.back().get_times(), arial));
+                        laser_disription_list.back().setPosition(laser_list.back().getPosition());
+                        laser_disription_list.back().setScale(1/120.0f, 1/120.0f);
                     }
                     break;
                 }
@@ -771,36 +697,36 @@ void Game_Objects::add(sf::RenderWindow &window, GAME_OBJECT_TYPE type, const sf
             }
         }
         if (type == GAME_OBJECT_TYPE::SHURIKEN) {
-            shuriken_list.push_front(Shuriken(floatrect));
+            shuriken_list.push_back(Shuriken(floatrect));
         }
         if (type == GAME_OBJECT_TYPE::BACKGROUND) {
             if (!intersects_for_background(floatrect)) {
-                background_list.push_front(Background(floatrect));
+                background_list.push_back(Background(floatrect));
             }
         }
     }
 }
 
 void Game_Objects::remove(const sf::FloatRect &floatrect) {
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Block, block_list, floatrect, block_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Spike, spike_list, floatrect, spike_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Tramplin, tramplin_list, floatrect, tramplin_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Stair, stair_list, floatrect, stair_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Laser, laser_list, floatrect, laser_disription_list.erase(it->text_it); laser_list.erase(it); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(block_list, floatrect, block_list.erase(block_list.begin() + n); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(spike_list, floatrect, spike_list.erase(spike_list.begin() + n); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(tramplin_list, floatrect, tramplin_list.erase(tramplin_list.begin() + n); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(stair_list, floatrect, stair_list.erase(stair_list.begin() + n); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(laser_list, floatrect, laser_disription_list.erase(laser_disription_list.begin() + n); laser_list.erase(laser_list.begin() + n); return;)
 
     GAME_OBJECTS_SEARCH_FOR_MAP(iterator, Door, door_list, floatrect, door_list.erase(it); return;)
     GAME_OBJECTS_SEARCH_FOR_MAP(iterator, Key, key_list, floatrect, key_list.erase(it); return;)
 
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Shuriken, shuriken_list, floatrect, shuriken_list.erase(it); return;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(iterator, Background, background_list, floatrect, background_list.erase(it); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(shuriken_list, floatrect, shuriken_list.erase(shuriken_list.begin() + n); return;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(background_list, floatrect, background_list.erase(background_list.begin() + n); return;)
 }
 
 bool Game_Objects::intersects(const sf::FloatRect &floatrect) const {
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Block, block_list, floatrect, return true;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Spike, spike_list, floatrect, return true;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Tramplin, tramplin_list, floatrect, return true;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Stair, stair_list, floatrect, return true;)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Laser, laser_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(block_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(spike_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(tramplin_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(stair_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(laser_list, floatrect, return true;)
     GAME_OBJECTS_SEARCH_MAP(const_iterator, floatrect, return true;)
     if (floatrect.intersects(finish.getGlobalBounds())) {
         return true;
@@ -809,23 +735,29 @@ bool Game_Objects::intersects(const sf::FloatRect &floatrect) const {
 }
 
 bool Game_Objects::intersects_for_background(const sf::FloatRect &floatrect) const {
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Background, background_list, floatrect, return true;)
+    GAME_OBJECTS_SEARCH_FOR_LIST(background_list, floatrect, return true;)
     return false;
 }
 
 void Game_Objects::draw(sf::RenderTarget& target, sf::RenderStates states) const {
+    sf::View view = target.getView();
+    //Sky
+    target.setView(target.getDefaultView());
+    target.draw(sky, states);
+    target.setView(view);
+    //Others
     sf::FloatRect rect = sf::FloatRect(target.getView().getCenter() - target.getView().getSize()/2.0f, target.getView().getSize());
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Background, background_list, rect, target.draw((*it), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(background_list, rect, target.draw((background_list[n]), states);)
     target.draw(player, states);
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Shuriken, shuriken_list, rect, target.draw((*it), states);)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Block, block_list, rect, target.draw((*it), states);)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Spike, spike_list, rect, target.draw((*it), states);)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Tramplin, tramplin_list, rect, target.draw((*it), states);)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Stair, stair_list, rect, target.draw((*it), states);)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Laser, laser_list, rect, target.draw((*it), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(shuriken_list, rect, target.draw((shuriken_list[n]), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(block_list, rect, target.draw((block_list[n]), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(spike_list, rect, target.draw((spike_list[n]), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(tramplin_list, rect, target.draw((tramplin_list[n]), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(stair_list, rect, target.draw((stair_list[n]), states);)
+    GAME_OBJECTS_SEARCH_FOR_LIST(laser_list, rect, target.draw((laser_list[n]), states);)
     GAME_OBJECTS_SEARCH_MAP(const_iterator, rect, target.draw(it->second, states);)
     if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
-        GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, sf::Text, laser_disription_list, rect, target.draw((*it), states);)
+        GAME_OBJECTS_SEARCH_FOR_LIST(laser_disription_list, rect, target.draw((laser_disription_list[n]), states);)
     }
     if (rect.intersects(finish.getGlobalBounds())) {
         target.draw(finish, states);
@@ -833,16 +765,16 @@ void Game_Objects::draw(sf::RenderTarget& target, sf::RenderStates states) const
 }
 
 sf::FloatRect Game_Objects::remove_shading(const sf::FloatRect &floatrect) const {
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Block, block_list, floatrect, return it->getGlobalBounds();)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Spike, spike_list, floatrect, return it->getGlobalBounds();)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Tramplin, tramplin_list, floatrect, return it->getGlobalBounds();)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Stair, stair_list, floatrect, return it->getGlobalBounds();)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Laser, laser_list, floatrect, return it->getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(block_list, floatrect, return block_list[n].getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(spike_list, floatrect, return spike_list[n].getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(tramplin_list, floatrect, return tramplin_list[n].getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(stair_list, floatrect, return stair_list[n].getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(laser_list, floatrect, return laser_list[n].getGlobalBounds();)
 
     GAME_OBJECTS_SEARCH_MAP(const_iterator, floatrect, return it->second.getGlobalBounds();)
 
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Shuriken, shuriken_list, floatrect, return it->getGlobalBounds();)
-    GAME_OBJECTS_SEARCH_FOR_LIST(const_iterator, Background, background_list, floatrect, return it->getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(shuriken_list, floatrect, return shuriken_list[n].getGlobalBounds();)
+    GAME_OBJECTS_SEARCH_FOR_LIST(background_list, floatrect, return background_list[n].getGlobalBounds();)
 
     return sf::FloatRect(0.0f, 0.0f, 0.0f, 0.0f);
 }
@@ -859,7 +791,7 @@ void Game_Objects::load(const std::string &level_name) {
     fout.ignore(99999, '\n');
     for (int i = 0; i < number; i++) {
         fout >> pos_x >> pos_y >> size_x >> size_y;
-        block_list.push_front(Block(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+        block_list.push_back(Block(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
     }
     //Spike
     fout >> number;
@@ -867,21 +799,21 @@ void Game_Objects::load(const std::string &level_name) {
     for (int i = 0; i < number; i++) {
         float angle;
         fout >> pos_x >> pos_y >> size_x >> size_y >> angle;
-        spike_list.push_front(Spike(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
+        spike_list.push_back(Spike(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
     }
     //Tramplin
     fout >> number;
     fout.ignore(99999, '\n');
     for (int i = 0; i < number; i++) {
         fout >> pos_x >> pos_y >> size_x >> size_y;
-        tramplin_list.push_front(Tramplin(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+        tramplin_list.push_back(Tramplin(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
     }
     //Shuriken
     fout >> number;
     fout.ignore(99999, '\n');
     for (int i = 0; i < number; i++) {
         fout >> pos_x >> pos_y >> size_x >> size_y;
-        shuriken_list.push_front(Shuriken(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+        shuriken_list.push_back(Shuriken(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
     }
     //Stair
     fout >> number;
@@ -889,7 +821,7 @@ void Game_Objects::load(const std::string &level_name) {
     for (int i = 0; i < number; i++) {
         float angle;
         fout >> pos_x >> pos_y >> size_x >> size_y >> angle;
-        stair_list.push_front(Stair(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
+        stair_list.push_back(Stair(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle));
     }
     //Laser
     fout >> number;
@@ -897,12 +829,11 @@ void Game_Objects::load(const std::string &level_name) {
     for (int i = 0; i < number; i++) {
         float angle, T_down, T_up, T_0;
         fout >> pos_x >> pos_y >> size_x >> size_y >> angle >> T_down >> T_up >> T_0;
-        laser_list.push_front(Laser(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle, T_down, T_up, T_0));
+        laser_list.push_back(Laser(sf::FloatRect(pos_x, pos_y, size_x, size_y), angle, T_down, T_up, T_0));
         if (level_selection_type == LEVEL_SELECTION_TYPE::BUILD) {
-            laser_disription_list.push_front(sf::Text(laser_list.front().get_times(), arial));
-            laser_list.front().text_it = laser_disription_list.begin();
-            laser_disription_list.front().setPosition(laser_list.front().getPosition());
-            laser_disription_list.front().setScale(1/120.0f, 1/120.0f);
+            laser_disription_list.push_back(sf::Text(laser_list.back().get_times(), arial));
+            laser_disription_list.back().setPosition(laser_list.back().getPosition());
+            laser_disription_list.back().setScale(1/140.0f, 1/140.0f);
         }
     }
     //Door
@@ -928,7 +859,7 @@ void Game_Objects::load(const std::string &level_name) {
     fout.ignore(99999, '\n');
     for (int i = 0; i < number; i++) {
         fout >> pos_x >> pos_y >> size_x >> size_y;
-        background_list.push_front(Background(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
+        background_list.push_back(Background(sf::FloatRect(pos_x, pos_y, size_x, size_y)));
     }
     
 
@@ -983,14 +914,14 @@ void Game_Objects::save(const std::string &level_name) const {
     for (const auto& it : door_list) {
         buff = it.second.getGlobalBounds();
         sf::Color color = it.second.getFillColor();
-        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << color.r << " " << color.g << " " << color.b << " " << color.a << "\n";
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << static_cast<int>(color.r) << " " << static_cast<int>(color.g) << " " << static_cast<int>(color.b) << " " << static_cast<int>(color.a) << "\n";
     }
     //Key
     fin << key_list.size() << " keys:\n";
     for (const auto& it : key_list) {
         buff = it.second.getGlobalBounds();
         sf::Color color = it.second.getFillColor();
-        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << color.r << " " << color.g << " " << color.b << " " << color.a << "\n";
+        fin << buff.left << " " << buff.top << " " << buff.width << " " << buff.height << " " << static_cast<int>(color.r) << " " << static_cast<int>(color.g) << " " << static_cast<int>(color.b) << " " << static_cast<int>(color.a) << "\n";
     }
     //Background
     fin << background_list.size() << " backgrounds:\n";
@@ -1002,13 +933,93 @@ void Game_Objects::save(const std::string &level_name) const {
     fin.close();
 }
 
-void Game_Objects::player_jump() {player.jump = true;}
+const sf::Vector2f& Game_Objects::get_player_pos() const {
+    return player.getPosition();
+}
+
+bool Game_Objects::player_death() const {
+    return player.death;
+}
+
+bool Game_Objects::player_finish() const {
+    return player.finish;
+}
+
+void Game_Objects::real_player_collision(Player &player, const std::vector<Block> &block_list, const std::vector<Tramplin> &tramplin_list, const std::unordered_multimap<int, Door> &door_list) {
+    sf::FloatRect player_rect = player.getGlobalBounds();
+    std::vector<std::pair<GAME_OBJECT_TYPE, const sf::RectangleShape*>> arr;
+    //Take a data about collisions
+    for (const auto& it : block_list) {
+        if (it.getGlobalBounds().intersects(player_rect)) {
+            arr.push_back(std::make_pair(GAME_OBJECT_TYPE::BLOCK, &it));
+        }
+    }
+    for (const auto& it : tramplin_list) {
+        if (it.getGlobalBounds().intersects(player_rect)) {
+            arr.push_back(std::make_pair(GAME_OBJECT_TYPE::TRAMPLIN, &it));
+        }
+    }
+    for (const auto& it : door_list) {
+        if (it.second.getGlobalBounds().intersects(player_rect)) {
+            arr.push_back(std::make_pair(GAME_OBJECT_TYPE::DOOR, &(it.second)));
+        }
+    }
+    if (arr.size() == 0) {return;}
+
+    //Sort data
+    std::sort(arr.begin(), arr.end(), [&player](const std::pair<GAME_OBJECT_TYPE, const sf::RectangleShape*>& left, const std::pair<GAME_OBJECT_TYPE, const sf::RectangleShape*>& right) -> bool {
+        sf::FloatRect lft;
+        sf::FloatRect rght;
+        player.getGlobalBounds().intersects((left.second)->getGlobalBounds(), lft);
+        player.getGlobalBounds().intersects((right.second)->getGlobalBounds(), rght);
+        return (lft.height*lft.width > rght.height*rght.width);
+    });
+
+    //Do collisions
+    for (int n = 0, size = arr.size(); n < size; n++) {
+        sf::FloatRect intersection;
+        if ((arr[n].second)->getGlobalBounds().intersects(player_rect, intersection)) {
+            if (intersection.width < intersection.height) {
+                if (intersection.left > player_rect.left) {
+                    player.move(-intersection.width, 0.0f);
+                    player.on_wall = true;
+                }
+                else if (intersection.left + intersection.width < player_rect.left + player_rect.width) {
+                    player.move(intersection.width, 0.0f);
+                    player.on_wall = true;
+                }
+            }
+            else {
+                if (intersection.top > player_rect.top) {
+                    player.move(0.0f, -intersection.height);
+                    player.on_floor = true;
+                }
+                else if (intersection.top + intersection.height < player_rect.top + player_rect.height) {
+                    player.move(0.0f, intersection.height);
+                }
+                if (arr[n].first == GAME_OBJECT_TYPE::TRAMPLIN) {
+                    player.v_y = -player.v_y/1.2f;
+                }
+                else {
+                    player.v_y = 0.0f;
+                }
+            }
+            player_rect = player.getGlobalBounds();
+            n = -1;
+        }
+    }
+}
 
 void Game_Objects::update(const float d_time) {
     player.update(d_time);
     sky.update(d_time);
-    Block::player_collision(player, block_list);
-    //TODO : Collisions
+    real_player_collision(player, block_list, tramplin_list, door_list);
+    Stair::player_collision(player, stair_list);
+    Spike::player_collision(player, spike_list);
+    Shuriken::player_collision(player, shuriken_list, d_time);
+    Laser::player_collision(player, laser_list, d_time);
+    Key::player_collision(player, door_list, key_list);
+    finish.player_collision(player);
 }
 
 Game_Objects::Game_Objects(const sf::RenderWindow &window, LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name) : level_selection_type(level_selection_type), sky(window) {

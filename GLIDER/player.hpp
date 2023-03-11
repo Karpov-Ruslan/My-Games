@@ -9,11 +9,11 @@ namespace krv {
     class Player : public sf::RectangleShape {
         sf::Texture texture;
       public:
+        float jump_waiting_time = 0.0f;
         float v_x = 0.0f;
         float v_y = 0.0f;
         bool on_floor = false;
         bool on_wall = false;
-        bool jump = false;
         bool death = false; // TODO : Death moment
         bool finish = false; // TODO : Finish moment
 

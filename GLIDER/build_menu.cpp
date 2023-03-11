@@ -74,6 +74,14 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                     view.setCenter(0.0f, 0.0f);
                     window.setView(view);
                 }
+                if (event.key.code == sf::Keyboard::Left) {
+                    build_cursor.decrease_type();
+                    build_type.update(build_cursor.get_type());
+                }
+                if (event.key.code == sf::Keyboard::Right) {
+                    build_cursor.increase_type();
+                    build_type.update(build_cursor.get_type());
+                }
             }
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Button::Left) {

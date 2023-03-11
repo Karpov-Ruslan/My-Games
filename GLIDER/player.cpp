@@ -12,21 +12,36 @@ namespace krv {
         setTexture(&texture);
     }
 
+    const float jump_wait_time = 0.5f;
+    const float speed_x = 10.0f;
+
     void Player::update(const float d_time) {
-        bool left, right;
-        left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
-        right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
+        bool left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
+        bool right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
+        bool jump = (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || (sf::Keyboard::isKeyPressed(sf::Keyboard::RControl)));
+        bool jump_time = !(jump_waiting_time > 0.0f);
         if (left && right) {v_x = 0.0f;}
-        else if (left) {v_x = -7.5f;}
-        else if (right) {v_x = 7.5f;}
+        else if (left) {v_x = -speed_x;}
+        else if (right) {v_x = speed_x;}
         else {v_x = 0.0f;}
+        if (!jump_time) {
+            jump_waiting_time -= d_time;
+        }
+        if (jump && on_floor) { //Jump from floor
+            v_y = -20.0f;
+            on_floor = false;
+            jump = false;
+            jump_waiting_time = jump_wait_time;
+        }
+        else if (jump_time && jump && on_wall) { //Jump from wall
+            v_y = -20.0f;
+            on_wall = false;
+            jump_waiting_time = jump_wait_time;
+        }
         if (std::abs(v_y) < 80.0f) {
-            if (on_wall) {v_y += gravity*d_time/4.0f;}
-            else {v_y += gravity*d_time;}
+            v_y += gravity*d_time;
         }
         move(v_x*d_time, v_y*d_time);
-
-        jump = false;
         on_floor = false;
         on_wall = false;
     }

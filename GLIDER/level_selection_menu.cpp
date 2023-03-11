@@ -55,8 +55,9 @@ namespace krv {
                         build_menu(window, file_list.levels_folder + static_cast<std::string>(cursor.get_mouse_iterator()->text.getString()) + ".txt");
                     }
                     if (level_selection_menu == LEVEL_SELECTION_TYPE::PLAY) {
-                        //TODO: play game
-                        while (play_game(window, file_list.levels_folder + static_cast<std::string>(cursor.get_mouse_iterator()->text.getString()) + ".txt"));
+                        window.setMouseCursorVisible(false);
+                        while (!play_game(window, file_list.levels_folder + static_cast<std::string>(cursor.get_mouse_iterator()->text.getString()) + ".txt"));
+                        window.setMouseCursorVisible(true);
                     }
                 }
             }
