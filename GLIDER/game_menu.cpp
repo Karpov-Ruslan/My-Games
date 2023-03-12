@@ -9,7 +9,7 @@ namespace krv {
 void game_menu() {
 
     sf::RenderWindow window(sf::VideoMode(800, 600), "Glider", sf::Style::Close);
-    window.setFramerateLimit(144);
+    window.setVerticalSyncEnabled(true);
 
     sf::Image cursor_image;
     cursor_image.loadFromFile("../pic/cursor.png");

@@ -1,7 +1,6 @@
 #include "play_game.hpp"
 
 #include <SFML/Graphics.hpp>
-#include <thread>
 #include "game_objects.hpp"
 
 namespace krv {
@@ -33,7 +32,7 @@ bool play_game(sf::RenderWindow &window, const std::string &filename) {
         float d_time = clock.getElapsedTime().asSeconds();
         clock.restart();
         if (d_time < 0.05f) {
-            view.move(sf::Vector2f((game_objects.get_player_pos() - view.getCenter()))*d_time);
+            view.move(sf::Vector2f((game_objects.get_player_pos() - view.getCenter()))*(d_time*2.0f));
             window.setView(view);
 
             game_objects.update(d_time);
