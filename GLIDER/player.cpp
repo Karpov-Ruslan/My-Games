@@ -16,14 +16,18 @@ namespace krv {
     const float speed_x = 10.0f;
 
     void Player::update(const float d_time) {
+        bool slow = sf::Keyboard::isKeyPressed(sf::Keyboard::LShift) || sf::Keyboard::isKeyPressed(sf::Keyboard::RShift);
         bool left = sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::A);
         bool right = sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::D);
-        bool jump = (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || (sf::Keyboard::isKeyPressed(sf::Keyboard::RControl)));
+        bool jump = (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) || (sf::Keyboard::isKeyPressed(sf::Keyboard::RControl)) || (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) || (sf::Keyboard::isKeyPressed(sf::Keyboard::W)));
         bool jump_time = !(jump_waiting_time > 0.0f);
+
         if (left && right) {v_x = 0.0f;}
         else if (left) {v_x = -speed_x;}
         else if (right) {v_x = speed_x;}
         else {v_x = 0.0f;}
+        if (slow) {v_x /= 4.0f;
+        }
         if (!jump_time) {
             jump_waiting_time -= d_time;
         }

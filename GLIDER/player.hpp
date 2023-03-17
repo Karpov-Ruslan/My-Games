@@ -14,8 +14,8 @@ namespace krv {
         float v_y = 0.0f;
         bool on_floor = false;
         bool on_wall = false;
-        bool death = false;
-        bool finish = false;
+        bool death = false; // TODO : Death moment
+        bool finish = false; // TODO : Finish moment
 
 
         Player();

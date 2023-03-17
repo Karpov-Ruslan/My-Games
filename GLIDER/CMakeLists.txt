@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-O2 -ggdb")
 
 
-add_executable(Glider main.cpp menu_components.cpp build_menu.cpp build_components.cpp game_objects.cpp level_selection_menu.cpp game_menu.cpp player.cpp play_game.cpp)
+add_executable(Glider main.cpp menu_components.cpp build_menu.cpp build_components.cpp game_objects.cpp level_selection_menu.cpp game_menu.cpp player.cpp play_game.cpp leaderboard.cpp)
 
 set(SFML_DIR "C:/Users/Ruslan/CLionProjects/lib/sfml/GCC 7.3.0 MinGW (SEH) - 64-bit/SFML-2.5.1/lib/cmake/SFML")
 

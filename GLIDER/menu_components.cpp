@@ -309,6 +309,9 @@ namespace krv {
         std::ofstream fin(levels_folder + level_name + ".txt");
         fin << "-0.5 -1.5\n0 block:\n0 spikes:\n0 tramplins:\n0 shurikens:\n0 stairs:\n0 lasers:\n0 doors:\n0 keys:\n0 backgrounds:\n";
         fin.close();
+
+        std::ofstream fin_scores(levels_folder + level_name + "_scores.txt");
+        fin_scores.close();
     }
 
     void File_List::delete_level(sf::RenderWindow &window, Scrollbar &scrollbar, LevelSelectionCursor &cursor) {
@@ -332,6 +335,7 @@ namespace krv {
             fin_levels.close();
 
             std::remove((levels_folder + level_name + ".txt").c_str());
+            std::remove((levels_folder + level_name + "_scores.txt").c_str());
         }
     }
 

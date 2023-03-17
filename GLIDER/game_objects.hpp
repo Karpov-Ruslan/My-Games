@@ -18,8 +18,8 @@ enum class GAME_OBJECT_TYPE : int {
     SHURIKEN, //Update with time
     STAIR,
     LASER, //Update with time
-    DOOR,
-    KEY,
+    DOOR, //TODO: Bugs
+    KEY, //TODO: Bugs
     FINISH,
     BACKGROUND,
     NOTHING,
@@ -169,17 +169,15 @@ class Laser : public sf::RectangleShape {
         T0,
     };
     
-    float t_down = 1.0f;
-    float t_up = 1.0f;
+    float t_down = 0.0f;
+    float t_up = 10000.0f;
     float t0 = 0.0f;
 
 
     bool set_times(sf::RenderWindow &window, TIME_TYPE time_type);
 
   public:
-    std::string get_times_spaces() const;
-
-    std::string get_times_enters() const;
+    std::string get_times() const;
     
     Laser(const sf::FloatRect &floatrect, const float angle, sf::RenderWindow &window);
 
@@ -271,7 +269,7 @@ class Finish : public sf::RectangleShape {
 
     Finish& operator=(Finish&& value);
 
-    void player_collision(Player &player) const;
+    void player_collision(Player &player);
 };
 
 
