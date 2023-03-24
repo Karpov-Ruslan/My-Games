@@ -6,6 +6,7 @@
 #include <utility>
 #include <cmath>
 #include <string>
+#include <thread>
 
 #include "game_objects.hpp"
 
@@ -272,9 +273,18 @@ Sky::Sky(const sf::RenderWindow &window) {
 }
 
 void Sky::update(const float d_time) {
-    clouds.move(-150*d_time, 0.0f);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Add)) {
+        speed -= 5.0f;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Subtract)) {
+        speed += 5.0f;
+    }
+    clouds.move(speed*d_time, 0.0f);
     if (clouds.getPosition().x < -800.0f) {
         clouds.move(800.0f, 0.0f);
+    }
+    if (clouds.getPosition().x > 0.0f) {
+        clouds.move(-800.0f, 0.0f);
     }
 }
 
@@ -1038,8 +1048,13 @@ void Game_Objects::real_player_collision(Player &player, const std::vector<Block
 }
 
 void Game_Objects::update(const float d_time) {
+    //Update without collision
+    std::thread th([&](){
+        sky.update(d_time);
+    });
+
+    //Player_Collision
     player.update(d_time);
-    sky.update(d_time);
     real_player_collision(player, block_list, tramplin_list, door_list);
     Stair::player_collision(player, stair_list);
     Spike::player_collision(player, spike_list);
@@ -1047,6 +1062,7 @@ void Game_Objects::update(const float d_time) {
     Laser::player_collision(player, laser_list, d_time);
     Key::player_collision(player, door_list, key_list);
     finish.player_collision(player);
+    th.join();
 }
 
 Game_Objects::Game_Objects(const sf::RenderWindow &window, LEVEL_SELECTION_TYPE level_selection_type, const std::string &level_name) : level_selection_type(level_selection_type), sky(window) {

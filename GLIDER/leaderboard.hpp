@@ -22,6 +22,8 @@ namespace krv {
 
         void print_scores();
 
+        static void reset_leaders(const std::string &filename);
+
     private:
         void draw(sf::RenderTarget &target, sf::RenderStates states) const;
     };

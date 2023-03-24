@@ -4,6 +4,6 @@
 
 namespace krv {
 
-void build_menu(sf::RenderWindow &window, const std::string &level_file);
+void build_menu(sf::RenderWindow &window, const std::string &filename);
 
 }

@@ -30,6 +30,7 @@ class Sky : public sf::Drawable {
     sf::RectangleShape sky;
     sf::Texture clouds_texture;
     sf::RectangleShape clouds;
+    float speed = -150.0f;
 
     void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 

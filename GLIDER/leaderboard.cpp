@@ -30,7 +30,12 @@ namespace krv {
         str.clear();
 
         for (const auto& buff : leader_board) {
-            str += (std::to_string(buff.second / 1000) + "." + (std::to_string(buff.second % 1000)) + "\n");
+            str += (std::to_string(buff.second / 1000) + ".");
+            std::string milliseconds_string = std::to_string(buff.second % 1000);
+            for (int i = 3 - milliseconds_string.size(); i > 0; i--) {
+                milliseconds_string.insert(0, "0");
+            }
+            str += (milliseconds_string + "\n");
         }
         scores_table.setString(str);
     }
@@ -128,6 +133,11 @@ namespace krv {
             }
             fin.close();
         }
+    }
+
+    void LeaderBoard::reset_leaders(const std::string &filename) {
+        std::ofstream fin(filename);
+        fin.close();
     }
 
     void LeaderBoard::draw(sf::RenderTarget &target, sf::RenderStates states) const {

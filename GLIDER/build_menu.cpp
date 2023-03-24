@@ -3,7 +3,7 @@
 #include "build_menu.hpp"
 #include "menu_components.hpp"
 #include "build_components.hpp"
-#include "player.hpp"
+#include "leaderboard.hpp"
 
 namespace krv {
 
@@ -28,12 +28,12 @@ class MyMouse : public sf::Mouse {
 
 
 
-void build_menu(sf::RenderWindow &window, const std::string &level_file) {
+void build_menu(sf::RenderWindow &window, const std::string &filename) {
     sf::View view(sf::Vector2f(0.0f, 0.0f), sf::Vector2f(24.0f, 18.0f));
     window.setView(view);
     MyMouse mouse;
 /////////////////////////>   Moving Elements   <//////////////////////////////////
-    Game_Objects game_objects(window, LEVEL_SELECTION_TYPE::BUILD, level_file);
+    Game_Objects game_objects(window, LEVEL_SELECTION_TYPE::BUILD, filename);
     Build_Cursor build_cursor(1.0f);
 /////////////////////////>   Static Elements   <//////////////////////////////////
     Build_Type build_type;
@@ -44,6 +44,8 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
     exit_button.setTextureRect(sf::IntRect(0, 50, 50, 50));
     Quadratic_Button save_button(721.0f, 27.0f, 50.0f, buttons_texture, 3);
     save_button.setTextureRect(sf::IntRect(0, 0, 50, 50));
+    Quadratic_Button reset_leaderboard_button(669.0f, 27.0f, 50.0f, buttons_texture, 2);
+    reset_leaderboard_button.setTextureRect(sf::IntRect(0, 100, 50, 50));
 
 
     while (window.isOpen()) {
@@ -65,7 +67,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
                         build_cursor.change_press();
                     }
                     else {
-                        game_objects.save(level_file);
+                        game_objects.save(filename);
                         window.setView(window.getDefaultView());
                         return;
                     }
@@ -86,12 +88,15 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
             if (event.type == sf::Event::MouseButtonPressed) {
                 if (event.mouseButton.button == sf::Mouse::Button::Left) {
                     if (exit_button.mouse_on(window)) {
-                        game_objects.save(level_file);
+                        game_objects.save(filename);
                         window.setView(window.getDefaultView());
                         return;
                     }
                     else if (save_button.mouse_on(window)) {
-                        game_objects.save(level_file);
+                        game_objects.save(filename);
+                    }
+                    else if (reset_leaderboard_button.mouse_on(window)) {
+                        LeaderBoard::reset_leaders(filename.substr(0, filename.size() - 4) + "_scores.txt");
                     }
                     else {
                         if (build_cursor.get_pressed()) {
@@ -139,6 +144,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
         }
         exit_button.shading(window);
         save_button.shading(window);
+        reset_leaderboard_button.shading(window);
 
 
 /////////////////////////>     Background     <///////////////////////////////////
@@ -155,6 +161,7 @@ void build_menu(sf::RenderWindow &window, const std::string &level_file) {
         window.draw(build_type);
         window.draw(exit_button);
         window.draw(save_button);
+        window.draw(reset_leaderboard_button);
 
         window.display();
     }
